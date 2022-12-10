@@ -1,106 +1,220 @@
-import request from "supertest";
+import { default as request } from "supertest";
 import makeApp from "./app";
 import nock from "nock";
+import {
+  validateEmail,
+  validatePersonalNumber,
+  validateZipCode,
+} from "./validation";
 
-const validUser = {
-  firstname: "Anna",
-  lastname: "Andersson",
-  email: "anna.andersson@gmail.com",
-  personalnumber: "550713-1405",
-  address: "Utvecklargatan 12",
-  zipCode: "111 22",
-  city: "Stockholm",
-  country: "Sweden",
-};
-const invalidUser = {
-  firstname: "",
-  lastname: "Andersson",
-  email: "anna.andersson@gmail.com",
-  personalnumber: "550713-1405",
-  address: "Utvecklargatan 12",
-  zipCode: "111 22",
-  city: "Stockholm",
-  country: "Sweden",
-};
-const user = {
-  id: "638cfd06f84b41a7be61ebad",
-  firstname: "Anna",
-  lastname: "Andersson",
-  email: "anna.andersson@gmail.com",
-  personalnumber: "550713-1405",
-  address: "Utvecklargatan 12",
-  zipCode: "111 22",
-  city: "Stockholm",
-  country: "Sweden",
-  lat: 59.3251172,
-  lng: 18.0710935,
-};
 const createContact = jest.fn();
-const getAllContacts = jest.fn();
 const getContactById = jest.fn();
+const getAllContacts = jest.fn();
+const app = makeApp({ createContact, getContactById, getAllContacts });
+const validContactData = {
+  firstname: "Per",
+  lastname: "persson",
+  email: "per.per@gmail.com",
+  personalnumber: "550713-1405",
+  address: "Utvecklargatan 12",
+  zipCode: "111 22",
+  city: "Stockholm",
+  country: "Sweden",
+};
+const invalidContactData = {
+  firstname: "",
+  lastname: "persson",
+  email: "per.per@gmail.com",
+  personalnumber: "550713-1405",
+  address: "Utvecklargatan 12",
+  zipCode: "111 22",
+  city: "Stockholm",
+  country: "Sweden",
+};
 
-const app = makeApp({});
-
-nock("https://api.api-ninjas.com")
-  .get("/v1/geocoding?city=Huddinge&country=sweden")
-  .reply(200, [
-    {
-      name: "Huddinge",
-      latitude: 59.2293827,
-      longitude: 17.9748815,
-      country: "SE",
-    },
-    {
-      name: "Huddinge kommun",
-      latitude: 59.216667,
-      longitude: 18,
-      country: "SE",
-    },
-  ]);
-
-describe("Check app health check endpint", () => {
-  test("Should return your api is health and runnig when calling health check endpoint", async () => {
-    const response = await request(app).get("/api/healthcheck");
-    // expect(response.statusCode).toBe(200);
-    // expect(response.headers["content-length"]).toBe("41");
-    expect(response.status).toBe(200);
+describe("Validate email", () => {
+  it("should return false if input is invalid", () => {
+    expect(validateEmail("jonatan@gmail.com")).toBe(true);
+  });
+  it("should return false if the input is invalid", () => {
+    expect(validateEmail("jonatan@gmail")).toBe(false);
+  });
+  it("should return false if the input is invalid", () => {
+    expect(validateEmail("jonatan.com")).toBe(false);
   });
 });
 
+describe("Validate zipCode", () => {
+  it("should return true if input is 111 22", () => {
+    expect(validateZipCode("111 22")).toBe(true);
+  });
+  it("should return true if input is 12345", () => {
+    expect(validateZipCode("12345")).toBe(true);
+  });
+  it("should return false if the input is 1234", () => {
+    expect(validateZipCode("1234")).toBe(false);
+  });
+  it("should return false if the input is 123456", () => {
+    expect(validateZipCode("123456")).toBe(false);
+  });
+  it("should return false if the input is abcde", () => {
+    expect(validateZipCode("abcde")).toBe(false);
+  });
+});
+
+describe("Validate personal number", () => {
+  it("Should return true if personal number 550713-1405", () => {
+    expect(validatePersonalNumber("550713-1405")).toBe(true);
+  });
+  it("Should return true if personal number 5507131405", () => {
+    expect(validatePersonalNumber("5507131405")).toBe(true);
+  });
+  it("Should return false if personal number 55071314055", () => {
+    expect(validatePersonalNumber("55071314055")).toBe(false);
+  });
+  it("Should return false if personal number 55071a1405", () => {
+    expect(validatePersonalNumber("55071a1405")).toBe(false);
+  });
+});
 describe("POST /contact", () => {
-  it("Should return 200 status code when posting a valid contact", async () => {
-    const response = await request(app).post("/api/contact").send(validUser);
-    expect(response.status).toBe(201);
+  beforeEach(() => {
+    createContact.mockReset();
+    createContact.mockResolvedValue({
+      firstname: "Per",
+      lastname: "persson",
+      email: "per.per@gmail.com",
+      personalnumber: "550713-1405",
+      address: "Utvecklargatan 12",
+      zipCode: "111 22",
+      city: "Stockholm",
+      country: "Sweden",
+      _id: "63939b297bcfa687568eaa3d",
+      __v: 0,
+    });
+  });
+  it("should return 201 status code when posting product with valid data", async () => {
+    const response = await request(app)
+      .post("/api/contact")
+      .send(validContactData);
+    expect(response.statusCode).toBe(201);
   });
 
-  it("Should return 400 status code if post data is invalid", async () => {
-    const response = await request(app).post("/api/contact").send(invalidUser);
+  it("should return content-type = json", async () => {
+    const response = await request(app).post("/api/contact");
+    expect(response.headers["content-type"].indexOf("json") > -1).toBeTruthy();
+  });
+
+  it("should return 400 status code if sending invalid post data", async () => {
+    const response = await request(app)
+      .post("/api/contact")
+      .send(invalidContactData);
     expect(response.statusCode).toBe(400);
   });
+
+  it("should call createContact 1 time", async () => {
+    const response = await request(app)
+      .post("/api/contact")
+      .send(validContactData);
+    expect(createContact.mock.calls.length).toBe(1);
+  });
+
+  it("should recive a Per when posting", async () => {
+    const response = await request(app)
+      .post("/api/contact")
+      .send(validContactData);
+    expect(response.body.firstname).toBe("Per");
+  });
 });
 
-describe("GET /contact", () => {
-  it("Should return 200 status code and a list of contacts", async () => {
+describe("Get /Contact", () => {
+  beforeEach(() => {
+    getAllContacts.mockReset();
+    getAllContacts.mockResolvedValue([
+      {
+        firstname: "Per",
+        lastname: "persson",
+        email: "per.per@gmail.com",
+        personalnumber: "550713-1405",
+        address: "Utvecklargatan 12",
+        zipCode: "111 22",
+        city: "Stockholm",
+        country: "Sweden",
+        _id: "63939b297bcfa687568eaa3d",
+        __v: 0,
+      },
+    ]);
+  });
+  it("Should return 200 status code and a list of conatcts", async () => {
     const response = await request(app).get("/api/contact");
     expect(response.statusCode).toBe(200);
   });
 });
 
 describe("GET /contact/:id", () => {
-  it("Should return 200 status code and a user if user exist", async () => {
-    const response = await request(app).get(
-      "/api/contact/638cfd06f84b41a7be61ebad"
-    );
-    expect(response.statusCode).toBe(200);
+  beforeAll(() => {
+    nock("https://api.api-ninjas.com")
+      .get("/v1/geocoding?city=Stockholm&country=Sweden")
+      .times(1)
+      .reply(200, [
+        {
+          name: "Stockholm",
+          latitude: 59.3251172,
+          longitude: 18.0710935,
+          country: "SE",
+        },
+        {
+          name: "Stockholms kommun",
+          latitude: 59.3371186,
+          longitude: 17.9860453,
+          country: "SE",
+        },
+        {
+          name: "Stockholm",
+          latitude: 58.6796925,
+          longitude: 13.8849555,
+          country: "SE",
+        },
+        {
+          name: "Stockholm",
+          latitude: 60.5640539,
+          longitude: 14.663435,
+          country: "SE",
+        },
+        {
+          name: "Stockholm",
+          latitude: 57.53549495,
+          longitude: 16.746369220465393,
+          country: "SE",
+        },
+      ]);
   });
-  it("Should return a 404 status code if user not found", async () => {
-    const response = await request(app).get(
-      "/api/contact/638cfd06f84b41a7be61ebac"
-    );
-    expect(response.statusCode).toBe(404);
+  beforeEach(() => {
+    getContactById.mockReset();
+    getContactById.mockResolvedValue({
+      firstname: "Per",
+      lastname: "persson",
+      email: "per.per@gmail.com",
+      personalnumber: "550713-1405",
+      address: "Utvecklargatan 12",
+      zipCode: "111 22",
+      city: "Stockholm",
+      country: "Sweden",
+      _id: "63939b297bcfa687568eaa3d",
+      __v: 0,
+    });
   });
-  it("Should return 400 status code if id is invalid", async () => {
-    const response = await request(app).get("/api/contact/hej");
+
+  it("should return 400 if invalid mongo id is provided", async () => {
+    const response = await request(app).get("/api/contact/hejhej");
     expect(response.statusCode).toBe(400);
+  });
+
+  it("should return a correct latitud if valid id is provided", async () => {
+    const response = await request(app).get(
+      "/api/contact/63939b297bcfa687568eaa3d"
+    );
+    console.log("reponse body: ", response.body);
+
+    expect(response.body.latitude).toBe(59.3251172);
   });
 });

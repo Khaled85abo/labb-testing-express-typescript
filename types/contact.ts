@@ -1,4 +1,4 @@
-export interface InitialUser {
+export interface ContactPost {
   firstname: string;
   lastname: string;
   email: string;
@@ -9,11 +9,12 @@ export interface InitialUser {
   country: string;
 }
 
-export interface DbUser extends InitialUser {
+export interface DbContact extends ContactPost {
   _id: string;
+  __v: number;
 }
 
-export interface User extends DbUser {
+export interface Contact extends DbContact {
   lat: number;
   lng: number;
 }
