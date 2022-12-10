@@ -6,6 +6,7 @@ import {
   validateEmail,
   validatePersonalNumber,
   validateZipCode,
+  validateText,
 } from "./validation";
 type makeAppProps = {
   createContact: (conatct: ContactPost) => Promise<DbContact | undefined>;
@@ -19,31 +20,17 @@ const makeApp = ({ createContact, getAllContacts, getContactById }: any) => {
 
   app.post("/api/contact", async (req: Request, res: Response) => {
     // validate post data
-    const errors = [];
-    const properties = [
-      "zipCode",
-      "personalnumber",
-      "email",
-      "firstname",
-      "lastname",
-      "address",
-      "city",
-      "country",
-    ];
+    const errors = [...validateText(req.body)];
+
     const { zipCode, personalnumber, email } = req.body;
-    for (let property of properties) {
-      if (!req.body[property] || req.body[property].length == 0) {
-        errors.push(`${property} should have valid value`);
-      }
-    }
     if (!email || !validateEmail(email)) {
-      errors.push("email is not valid");
+      errors.push({ error: "email is not valid" });
     }
     if (!zipCode || !validateZipCode(zipCode)) {
-      errors.push("Zip code must be valid");
+      errors.push({ error: "Zip code must be valid" });
     }
     if (!personalnumber || !validatePersonalNumber(personalnumber)) {
-      errors.push("personal number is not valid");
+      errors.push({ error: "personal number is not valid" });
     }
     if (errors.length > 0) {
       res.status(400).json(errors);

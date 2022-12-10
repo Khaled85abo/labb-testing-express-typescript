@@ -1,3 +1,4 @@
+import { Request } from "express";
 export const validateEmail = (email: string): boolean => {
   const regex = /^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/;
   //   /^[a-z0-9._%+-]+@[a-z0-9.-]+.[a-z]{2,4}$/;
@@ -25,4 +26,35 @@ export const validatePersonalNumber = (personalnumber: string): boolean => {
   if (num.length > 10 || num.length == 0) return false;
   const regex = /[0-9]{10}/;
   return regex.test(num);
+};
+
+type RequestBody = {
+  zipCode: string;
+  personalnumber: string;
+  email: string;
+  firstname: string;
+  lastname: string;
+  address: string;
+  city: string;
+  country: string;
+};
+
+export const validateText = (body: any) => {
+  const errors = [];
+  const properties = [
+    "zipCode",
+    "personalnumber",
+    "email",
+    "firstname",
+    "lastname",
+    "address",
+    "city",
+    "country",
+  ];
+  for (let property of properties) {
+    if (!body[property] || body[property].length == 0) {
+      errors.push({ error: `${property} should have valid value` });
+    }
+  }
+  return errors;
 };
