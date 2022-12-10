@@ -26,5 +26,3 @@ export const validatePersonalNumber = (personalnumber: string): boolean => {
   const regex = /[0-9]{10}/;
   return regex.test(num);
 };
-
-export const validateText = () => {};

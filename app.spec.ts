@@ -162,30 +162,6 @@ describe("GET /contact/:id", () => {
           longitude: 18.0710935,
           country: "SE",
         },
-        {
-          name: "Stockholms kommun",
-          latitude: 59.3371186,
-          longitude: 17.9860453,
-          country: "SE",
-        },
-        {
-          name: "Stockholm",
-          latitude: 58.6796925,
-          longitude: 13.8849555,
-          country: "SE",
-        },
-        {
-          name: "Stockholm",
-          latitude: 60.5640539,
-          longitude: 14.663435,
-          country: "SE",
-        },
-        {
-          name: "Stockholm",
-          latitude: 57.53549495,
-          longitude: 16.746369220465393,
-          country: "SE",
-        },
       ]);
   });
   beforeEach(() => {
@@ -213,8 +189,33 @@ describe("GET /contact/:id", () => {
     const response = await request(app).get(
       "/api/contact/63939b297bcfa687568eaa3d"
     );
-    console.log("reponse body: ", response.body);
-
+    expect(response.statusCode).toBe(200);
     expect(response.body.latitude).toBe(59.3251172);
+    expect(response.body).toStrictEqual({
+      firstname: "Per",
+      lastname: "persson",
+      email: "per.per@gmail.com",
+      personalnumber: "550713-1405",
+      address: "Utvecklargatan 12",
+      zipCode: "111 22",
+      city: "Stockholm",
+      country: "Sweden",
+      _id: "63939b297bcfa687568eaa3d",
+      latitude: 59.3251172,
+      longitude: 18.0710935,
+    });
+  });
+});
+
+describe("GET/Contact/:id", () => {
+  beforeEach(() => {
+    getContactById.mockReset();
+    getContactById.mockResolvedValue(null);
+  });
+  it("should return a 404 if contact id doesn't exist", async () => {
+    const response = await request(app).get(
+      "/api/contact/63939b297bcfa687568eaa30"
+    );
+    expect(response.statusCode).toBe(404);
   });
 });

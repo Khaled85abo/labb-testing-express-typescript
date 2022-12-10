@@ -1,4 +1,6 @@
 import express, { json, Request, Response } from "express";
+import { getGeoCoor } from "./external-api";
+import { isValid } from "./models/Contact";
 import { Contact, ContactPost, DbContact } from "./types/contact";
 import {
   validateEmail,
@@ -14,11 +16,6 @@ type makeAppProps = {
 const makeApp = ({ createContact, getAllContacts, getContactById }: any) => {
   const app = express();
   app.use(json());
-  // app.use(urlencoded())
-
-  app.get("/api/healthcheck", (req: Request, res: Response) => {
-    res.status(200).json({ msg: "Your app is healthy and running" });
-  });
 
   app.post("/api/contact", async (req: Request, res: Response) => {
     // validate post data
@@ -51,11 +48,38 @@ const makeApp = ({ createContact, getAllContacts, getContactById }: any) => {
     if (errors.length > 0) {
       res.status(400).json(errors);
     } else {
-      try {
-        const contact = await createContact(req.body);
-        res.status(201).json(contact);
-      } catch (err) {
-        res.status(500);
+      const contact = await createContact(req.body);
+      res.status(201).json(contact);
+    }
+  });
+  app.get("/api/contact", async (req, res) => {
+    const contacts = await getAllContacts();
+    res.status(200).json(contacts);
+  });
+  app.get("/api/contact/:id", async (req, res) => {
+    if (!isValid(req.params.id)) {
+      res.status(400).send();
+    } else {
+      const contact = await getContactById(req.params.id);
+      if (!contact) {
+        res.status(404).send();
+      } else {
+        const coordinates = await getGeoCoor(contact.country, contact.city);
+        if (Array.isArray(coordinates)) {
+          res.json({
+            _id: contact._id,
+            firstname: contact.firstname,
+            lastname: contact.lastname,
+            city: contact.city,
+            country: contact.country,
+            email: contact.email,
+            address: contact.address,
+            personalnumber: contact.personalnumber,
+            zipCode: contact.zipCode,
+            latitude: coordinates[0].latitude,
+            longitude: coordinates[0].longitude,
+          });
+        }
       }
     }
   });
